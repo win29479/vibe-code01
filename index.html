@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f2ea">
+  <title>Pomodoro — 25 minutes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme:light; --ink:#26332f; --muted:#75817a; --green:#557d68; --green-dark:#426451; --paper:#f6f2ea; --card:#fffdf8; --line:#e9e3d8; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(ellipse at 50% 42%, #fffdf9 0, var(--paper) 72%); font-family:Inter, sans-serif; }
+    .topbar { height:76px; display:flex; align-items:center; justify-content:space-between; padding:0 clamp(22px,6vw,88px); background:var(--card); border-bottom:1px solid var(--line); }
+    .brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); font-size:19px; font-weight:750; letter-spacing:-.045em; }
+    .brand img { display:block; width:34px; height:34px; border-radius:50%; object-fit:cover; }
+    .nav-link { color:var(--muted); text-decoration:none; font-size:13px; font-weight:600; }
+    .nav-link:hover { color:var(--green); }
+    .page-content { min-height:calc(100vh - 76px); display:grid; place-items:center; padding:32px 24px; }
+    main { width:min(100%,520px); text-align:center; padding:44px 36px 36px; border:1px solid rgba(233,227,216,.9); border-radius:32px; background:rgba(255,253,248,.86); box-shadow:0 24px 70px rgba(64,75,66,.09); }
+    .eyebrow { margin:0 0 10px; color:var(--green); font-size:12px; font-weight:750; letter-spacing:.18em; text-transform:uppercase; }
+    h1 { margin:0; font-size:clamp(26px,7vw,34px); letter-spacing:-.04em; }
+    .subtitle { margin:9px 0 30px; color:var(--muted); font-size:14px; }
+    .timer-wrap { position:relative; display:grid; place-items:center; width:min(72vw,330px); aspect-ratio:1; margin:0 auto 26px; }
+    svg { position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg); }
+    .track,.progress { fill:none; stroke-width:7; }
+    .track { stroke:#eee9df; }
+    .progress { stroke:var(--green); stroke-linecap:round; stroke-dasharray:879.65; stroke-dashoffset:0; transition:stroke-dashoffset .35s ease; }
+    .time { font-variant-numeric:tabular-nums; font-size:clamp(72px,19vw,112px); font-weight:650; letter-spacing:-.075em; line-height:1; }
+    .time-label { margin-top:10px; color:var(--muted); font-size:13px; }
+    .controls { display:flex; justify-content:center; gap:12px; }
+    button { min-width:132px; border:0; border-radius:14px; padding:14px 20px; font:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:transform .15s,background .15s,box-shadow .15s; }
+    button:hover { transform:translateY(-2px); }
+    button:active { transform:translateY(0); }
+    button:focus-visible { outline:3px solid #9fbea9; outline-offset:3px; }
+    .primary { color:white; background:var(--green); box-shadow:0 7px 16px rgba(85,125,104,.2); }
+    .primary:hover { background:var(--green-dark); }
+    .secondary { color:var(--ink); background:#f0ede6; }
+    .secondary:hover { background:#e7e2d8; }
+    .session { margin:25px 0 0; color:var(--muted); font-size:12px; }
+    .session strong { color:var(--green); }
+    @media(max-width:420px) { .topbar { height:68px; } .page-content { min-height:calc(100vh - 68px); padding:20px 16px; } main { padding:36px 20px 28px; border-radius:26px; } button { min-width:0; flex:1; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=96&h=96&q=85" alt="Tomato"><span>Pomodoro</span></div>
+    <a class="nav-link" href="admin.html">Admin</a>
+  </header>
+  <div class="page-content">
+    <main aria-label="Pomodoro timer">
+      <p class="eyebrow">Focus on one thing</p>
+      <h1>Pomodoro</h1>
+      <p class="subtitle">Work with intention, then take a breath.</p>
+      <section class="timer-wrap" aria-label="Time remaining">
+        <svg viewBox="0 0 300 300" aria-hidden="true"><circle class="track" cx="150" cy="150" r="140"></circle><circle class="progress" id="progress" cx="150" cy="150" r="140"></circle></svg>
+        <div><div class="time" id="time" role="timer" aria-live="off">25:00</div><div class="time-label" id="status">Ready to focus</div></div>
+      </section>
+      <div class="controls"><button class="primary" id="startPause" type="button">Start focus</button><button class="secondary" id="reset" type="button">Reset</button></div>
+      <p class="session">Focus session <strong>25 minutes</strong> Take a short break when you're done</p>
+    </main>
+  </div>
+  <script>
+    const FOCUS_SECONDS=25*60, CIRCUMFERENCE=2*Math.PI*140;
+    const timeDisplay=document.getElementById('time'), statusDisplay=document.getElementById('status'), progress=document.getElementById('progress'), startPauseButton=document.getElementById('startPause'), resetButton=document.getElementById('reset');
+    let remaining=FOCUS_SECONDS, endAt=0, intervalId=null;
+    function render(){const minutes=Math.floor(remaining/60),seconds=remaining%60;timeDisplay.textContent=`${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;progress.style.strokeDashoffset=CIRCUMFERENCE*(1-remaining/FOCUS_SECONDS);document.title=`${timeDisplay.textContent} — Pomodoro`;}
+    function stopTimer(){clearInterval(intervalId);intervalId=null;}
+    function tick(){remaining=Math.max(0,Math.ceil((endAt-Date.now())/1000));render();if(remaining===0){stopTimer();startPauseButton.textContent='Start again';statusDisplay.textContent='25 minutes complete — take a break';document.title='Time is up — Pomodoro';if('Notification'in window&&Notification.permission==='granted')new Notification('Pomodoro complete',{body:'Take a short break, then start a new round.'});}}
+    startPauseButton.addEventListener('click',()=>{if(intervalId){remaining=Math.max(0,Math.ceil((endAt-Date.now())/1000));stopTimer();startPauseButton.textContent='Resume';statusDisplay.textContent='Paused';render();return;}if(remaining===0)remaining=FOCUS_SECONDS;endAt=Date.now()+remaining*1000;statusDisplay.textContent='Focusing';startPauseButton.textContent='Pause';intervalId=setInterval(tick,250);tick();});
+    resetButton.addEventListener('click',()=>{stopTimer();remaining=FOCUS_SECONDS;startPauseButton.textContent='Start focus';statusDisplay.textContent='Ready to focus';render();});
+    render();
+  </script>
+</body>
+</html>
